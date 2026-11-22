@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-clearcard}
+      POSTGRES_USER: ${POSTGRES_USER:-clearcard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clearcard_dev_password}
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clearcard} -d ${POSTGRES_DB:-clearcard}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ./services/api
+    env_file:
+      - .env.example
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  seed:
+    build:
+      context: ./services/api
+    env_file:
+      - .env.example
+    depends_on:
+      api:
+        condition: service_started
+    volumes:
+      - ./infra/seed:/app/seed
+    command: python /app/seed/seed_dev.py
+
+  web:
+    image: node:20-alpine
+    working_dir: /workspace/apps/web
+    volumes:
+      - .:/workspace
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:8000
+    depends_on:
+      - api
+    command: sh -c "npm install --prefix /workspace && npm run dev -- --host 0.0.0.0"
+
+volumes:
+  pgdata:

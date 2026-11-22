@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+:root {
+  --surface-base: #f8fafc;
+  --surface-card: #ffffff;
+  --border-subtle: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-muted: #475569;
+  --brand-primary: #4f46e5;
+  --status-success: #059669;
+  --status-warning: #d97706;
+  --status-error: #dc2626;
+}
+
+body {
+  background-color: var(--surface-base);
+  color: var(--text-primary);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
